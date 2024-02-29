@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Grpc.AspNetCore.Web;
 using Grpc.Core;
-using SpeechRecognitionGrpcService;
-using SpeechRecognitionService = Services.SpeechRecognitionService;
+using Services;
+using audio_cap_grpc.SpeechRecognitionGrpcService;
+using SpeechRecognitionService = audio_cap_grpc.Services.SpeechRecognitionService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +19,9 @@ builder.Services.AddGrpc().AddServiceOptions<SpeechRecognitionService>(options =
     options.EnableDetailedErrors = true; // Useful for development and debugging
 });
 builder.Services.AddSingleton<SpeechRecognitionService>();
+builder.Services.AddSingleton<TranslationService>();
 builder.Services.AddRouting();
+builder.Services.AddHttpClient(); // Register IHttpClientFactory
 
 // Add CORS policy for localhost
 builder.Services.AddCors(options =>

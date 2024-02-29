@@ -3,5 +3,10 @@
     "SubscriptionKey": "YourSubscriptionKey",
     "ServiceRegion": "YourServiceRegion"
   },
+  "AzureTranslatorService": {
+    "SubscriptionKey": "YourSubscriptionKey",
+    "ServiceRegion": "YourServiceRegion",
+    "GlobalTextTranslationEndpoint": "https://api.cognitive.microsofttranslator.com"
+  },
   "SaveWav": "False"
 }

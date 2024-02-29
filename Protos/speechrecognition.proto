@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package speechrecognition;
-option csharp_namespace = "SpeechRecognitionGrpcService";
+option csharp_namespace = "audio_cap_grpc.SpeechRecognitionGrpcService";
 
 import "google/protobuf/empty.proto";
 
@@ -13,6 +13,7 @@ service SpeechRecognitionServiceInterface {
 
 message CreateServiceRequest {
   string language = 1;
+  string translate_language = 2;
 }
 
 message DeleteServiceRequest {
@@ -26,4 +27,5 @@ message KeepServiceAliveRequest {
 message RecognitionResponse {
   string text = 1;
   string type = 2;
+  int32 timestamp = 3;
 }

@@ -1,25 +1,26 @@
-﻿using Google.Protobuf.WellKnownTypes;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.CognitiveServices.Speech;
-using System;
-using System.Collections.Concurrent;
-using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.CognitiveServices.Speech.Audio;
-using SpeechRecognitionGrpcService;
-using Microsoft.Extensions.Logging;
 using NAudio.Wave;
+using Services;
+using audio_cap_grpc.SpeechRecognitionGrpcService;
+using audio_cap_grpc.Utils;
 
-namespace Services
+namespace audio_cap_grpc.Services
 {
     public class SpeechRecognitionService : SpeechRecognitionServiceInterface.SpeechRecognitionServiceInterfaceBase
     {
         private readonly ILogger<SpeechRecognitionService> _logger;
         private readonly ConcurrentDictionary<string, RecognitionSession> _recognizers = new();
+        private readonly TranslationService _translationService;
 
-        public SpeechRecognitionService(ILogger<SpeechRecognitionService> logger)
+        public SpeechRecognitionService(ILogger<SpeechRecognitionService> logger, TranslationService translationService)
         {
             _logger = logger;
+            _translationService = translationService;
         }
 
         public override async Task CreateService(CreateServiceRequest request,
@@ -40,6 +41,10 @@ namespace Services
             var serviceRegion = Configuration["AzureSpeechService:ServiceRegion"];
             var saveWav = Configuration["SaveWav"];
             // var speechRecognitionLanguage = Configuration["CaptureLanguage"];
+            
+            // Setup Translator
+            bool translateFlag = !String.IsNullOrEmpty(request.TranslateLanguage) && request.TranslateLanguage != request.Language;
+            string toLanguage = request.TranslateLanguage;
 
 
             string projectDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -47,7 +52,7 @@ namespace Services
             bool saveWavFlag = saveWav != null && saveWav == "True";
 
             var speechConfig = SpeechConfig.FromSubscription(subscriptionKey, serviceRegion);
-            speechConfig.SpeechRecognitionLanguage = request.Language;
+            speechConfig.SpeechRecognitionLanguage = request.Language; // BCP-47 format
 
             var pushStream = AudioInputStream.CreatePushStream();
             var audioConfig = AudioConfig.FromStreamInput(pushStream);
@@ -85,8 +90,15 @@ namespace Services
                     _logger.LogInformation("Recognized: {Text}", e.Result.Text);
                     try
                     {
+                        int currentTimestamp = TimeUtils.GetCurrentUnixTimestamp();
                         await responseStream.WriteAsync(new RecognitionResponse
-                            { Text = e.Result.Text, Type = "Recognized" });
+                            { Text = e.Result.Text, Type = "Recognized" , Timestamp = currentTimestamp});
+                        if (translateFlag && !String.IsNullOrWhiteSpace(e.Result.Text))
+                        {
+                            string translateText = await _translationService.TranslateTextAsync(e.Result.Text, "", toLanguage);
+                            await responseStream.WriteAsync(new RecognitionResponse
+                                { Text = translateText, Type = "Translated" , Timestamp = currentTimestamp});
+                        }
                     }
                     catch (Exception ex)
                     {
