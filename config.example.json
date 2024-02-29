@@ -1,0 +1,7 @@
+{
+  "AzureSpeechService": {
+    "SubscriptionKey": "YourSubscriptionKey",
+    "ServiceRegion": "YourServiceRegion"
+  },
+  "SaveWav": "False"
+}
