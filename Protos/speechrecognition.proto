@@ -9,6 +9,7 @@ service SpeechRecognitionServiceInterface {
   rpc CreateService(CreateServiceRequest) returns (stream RecognitionResponse);
   rpc DeleteService(DeleteServiceRequest) returns (google.protobuf.Empty);
   rpc KeepServiceAlive(KeepServiceAliveRequest) returns (google.protobuf.Empty);
+  rpc GetTranslation(TranslationRequest) returns (RecognitionResponse);
 }
 
 message CreateServiceRequest {
@@ -22,6 +23,12 @@ message DeleteServiceRequest {
 
 message KeepServiceAliveRequest {
   string id = 1;
+}
+
+message TranslationRequest {
+  string text = 1;
+  string language = 2;
+  string translate_language = 3;
 }
 
 message RecognitionResponse {

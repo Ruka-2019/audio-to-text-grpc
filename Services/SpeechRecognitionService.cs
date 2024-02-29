@@ -27,7 +27,7 @@ namespace audio_cap_grpc.Services
             IServerStreamWriter<RecognitionResponse> responseStream, ServerCallContext context)
         {
             var id = Guid.NewGuid().ToString();
-            await responseStream.WriteAsync(new RecognitionResponse { Text = id, Type = "SessionId" });
+            await responseStream.WriteAsync(new RecognitionResponse { Text = id, Type = ResponseType.SessionId.ToString() });
 
             // Set up config from config.json
             string configPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..\\..\\..\\"));
@@ -74,7 +74,7 @@ namespace audio_cap_grpc.Services
                 try
                 {
                     await responseStream.WriteAsync(new RecognitionResponse
-                        { Text = e.Result.Text, Type = "Recognizing" });
+                        { Text = e.Result.Text, Type = ResponseType.Recognizing.ToString() });
                 }
                 catch (Exception ex)
                 {
@@ -92,12 +92,12 @@ namespace audio_cap_grpc.Services
                     {
                         int currentTimestamp = TimeUtils.GetCurrentUnixTimestamp();
                         await responseStream.WriteAsync(new RecognitionResponse
-                            { Text = e.Result.Text, Type = "Recognized" , Timestamp = currentTimestamp});
+                            { Text = e.Result.Text, Type = ResponseType.Recognized.ToString() , Timestamp = currentTimestamp});
                         if (translateFlag && !String.IsNullOrWhiteSpace(e.Result.Text))
                         {
                             string translateText = await _translationService.TranslateTextAsync(e.Result.Text, "", toLanguage);
                             await responseStream.WriteAsync(new RecognitionResponse
-                                { Text = translateText, Type = "Translated" , Timestamp = currentTimestamp});
+                                { Text = translateText, Type = ResponseType.Translated.ToString() , Timestamp = currentTimestamp});
                         }
                     }
                     catch (Exception ex)
@@ -214,7 +214,20 @@ namespace audio_cap_grpc.Services
 
             return Task.FromResult(new Empty());
         }
-
+        
+        public override async Task<RecognitionResponse> GetTranslation(TranslationRequest request, ServerCallContext context) {
+            try {
+                var translatedText = await _translationService.TranslateTextAsync(request.Text, request.Language, request.TranslateLanguage);
+                return new RecognitionResponse {
+                    Text = translatedText,
+                    Type = ResponseType.Translated.ToString(),
+                    Timestamp = TimeUtils.GetCurrentUnixTimestamp()
+                };
+            } catch (Exception ex) {
+                _logger.LogError(ex, "Error translating text");
+                throw new RpcException(new Status(StatusCode.Internal, "Internal server error"));
+            }
+        }
 
         public byte[] ConvertAudioData(byte[] buffer, int bytesRecorded, WaveFormat originalFormat)
         {
